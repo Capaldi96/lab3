@@ -57,6 +57,7 @@
                     .then((response) => {
                         this.$emit('newSnippet', response)
                     })
+
                     .catch((error) => {
                         this.errorMsg = 'Failed to add snippet, please try again';
                         this.error = true;
