@@ -1,8 +1,8 @@
 <template>
     <div id="editSnippet">
         <button @click="removeSnippet('delete')">Delete</button>
-        <button @click="removeSnippet('report')">Report</button>
-        <button @click="removeSnippet('unreport')">Unreport</button>
+        <button v-if="!showUnreport" @click="removeSnippet('report')">Report</button>
+        <button v-if="showUnreport" @click="removeSnippet('unreport')">Unreport</button>
         <button @click="removeSnippet('upvote')">Upvote</button>
         <button @click="removeSnippet('downvote')">Downvote</button>
     </div>
@@ -12,6 +12,7 @@
     export default {
         props: {
             identifier:Number,
+            showUnreport:Boolean,
         },
         name: 'editSnippet',
         components: {
@@ -40,6 +41,9 @@
 
     }
     #editSnippet :first-child{
+        grid-column: 1/ -1;
+    }
+    #editSnippet :nth-child(2){
         grid-column: 1/ -1;
     }
     .error{

@@ -1,9 +1,9 @@
 <template>
     <div id="list">
         <addSnippet @newSnippet="addSnippet"></addSnippet>
-        <button @click="fetchLatest">Get latest snippets</button>
-        <button @click="fetchBest">Get best snippets</button>
-        <button @click="fetchReported">Get reported snippets</button>
+        <button @click="fetchSnippets('latest')">Get latest snippets</button>
+        <button @click="fetchSnippets('best')">Get best snippets</button>
+        <button @click="fetchSnippets('reported')">Get reported snippets</button>
         <div v-show="!loading">{{shownList}}</div>
         <div v-show="loading">{{loadingMsg}}</div>
         <div class="snippets">
@@ -12,7 +12,7 @@
                 <div>Content:{{snippet.content}}</div>
                 <div>Score: {{snippet.score}}</div>
                 <div v-show="snippet.is_reported">Reports:{{snippet.is_reported}}</div>
-                <editSnippet @manageSnippet="editSnippet"  v-bind:identifier="snippet.id"></editSnippet>
+                <editSnippet @manageSnippet="editSnippet" v-bind:identifier="snippet.id" v-bind:showUnreport="showUnreport"></editSnippet>
             </div>
         </div>
     </div>
@@ -32,6 +32,7 @@ import editSnippet from './editSnippet.vue';
         data: () => ({
             loading: Boolean,
             loadingMsg: String,
+            showUnreport:false,
             shownList: 'Latest snippets are shown below',
             snippets:[]
         }),
@@ -51,63 +52,27 @@ import editSnippet from './editSnippet.vue';
                     this.loading=false;
                 }
             },
-            fetchLatest(){
+            fetchSnippets(param){
                 this.waitingForApi(true);
+                this.showUnreport = false;
                 this.loadingMsg = 'The API i loading please wait'
-                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?latest', {
+                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?'+ param, {
                     method: 'GET',
                 })
                 .then(response => response.json())
                 .then((data) => {
                     this.waitingForApi(false);
-                    this.shownList = 'Latest snippets are listed below';
+                    this.shownList = param + ' snippets are listed below';
                     this.snippets = data;
                 })
                 .catch((error) => {
                     this.waitingForApi(false);
-                    this.loadingMsg = 'Fetching "latest" from API failed, please try again.';
+                    this.loadingMsg = 'Fetching "'+ param +'" from API failed, please try again.';
                     console.log(error);
                 })
             },
-            fetchReported(){
-                this.waitingForApi(true);
-                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?reported', {
-                    method: 'GET',
-                })
-                .then(response => response.json())
-                .then((data) => {
-                    this.waitingForApi(false);
-                    this.shownList = 'Reported snippets are listed below';
-                    this.snippets = data;
-                })
-                .catch((error) => {
-                    this.waitingForApi(false);
-                    this.loadingMsg = 'Fetching "reported" from API failed, please try again.';
-                    console.log(error);
-                })
-            },
-            fetchBest(){
-                this.waitingForApi(true);
-                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?best', {
-                    method: 'GET',
-                })
-                .then(response => response.json())
-                .then((data) => {
-                    this.waitingForApi(false);
-                    this.shownList = 'Best snippets are listed below';
-                    this.snippets = data;
-                })
-                .catch((error) => {
-                    this.waitingForApi(false);
-                    this.loadingMsg = 'Fetching "best" from API failed, please try again.';
-                    console.log(error);
-                })
-            },
-            addSnippet(snippet){
-                console.log(snippet);
-                this.fetchLatest();
-                // console.log(snippet);
-                // this.snippets.push(snippet);
+            addSnippet(){
+                this.fetchSnippets('latest');
             },
             editSnippet(editSnippet){
                 if(editSnippet.func == 'delete'){
@@ -199,7 +164,7 @@ import editSnippet from './editSnippet.vue';
             },
         },
         mounted(){
-            this.fetchLatest();
+            this.fetchSnippets('latest');
         }
     }
 </script>
