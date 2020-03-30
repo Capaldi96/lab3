@@ -1,10 +1,10 @@
 <template>
     <div id="editSnippet">
-        <button @click="removeSnippet">Delete</button>
-        <button>Report</button>
-        <button>Unreport</button>
-        <button>Upvote</button>
-        <button>Downvote</button>
+        <button @click="removeSnippet('delete')">Delete</button>
+        <button @click="removeSnippet('report')">Report</button>
+        <button @click="removeSnippet('unreport')">Unreport</button>
+        <button @click="removeSnippet('upvote')">Upvote</button>
+        <button @click="removeSnippet('downvote')">Downvote</button>
     </div>
 </template>
 
@@ -19,12 +19,16 @@
         data: () => ({
         }),
         methods: {
-            removeSnippet(){
-                this.$emit('deleteSnippet', this.identifier)
+            removeSnippet(param){
+                let editSnippet = {
+                    id: this.identifier,
+                    func: param,
+                }
+                this.$emit('manageSnippet', editSnippet)
             },
          //   voteSnippet(param){},
            // reportSnippet(param){}
-        }
+        },
     }
 </script>
 
