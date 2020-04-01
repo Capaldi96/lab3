@@ -1,18 +1,17 @@
 <template>
     <div id="list">
-        <addSnippet @newSnippet="addSnippet"></addSnippet>
-        <button @click="fetchSnippets('latest')">Get latest snippets</button>
-        <button @click="fetchSnippets('best')">Get best snippets</button>
-        <button @click="fetchSnippets('reported')">Get reported snippets</button>
-        <div v-show="!loading">{{shownList}}</div>
-        <div v-show="loading">{{loadingMsg}}</div>
+        <addSnippet v-bind:isDisabled="isDisabled" @newSnippet="addSnippet"></addSnippet>
+        <button :disabled="isDisabled" @click="listSnippets('latest')">Get latest snippets</button>
+        <button :disabled="isDisabled" @click="listSnippets('best')">Get best snippets</button>
+        <button :disabled="isDisabled" @click="listSnippets('reported')">Get reported snippets</button>
+        <h3 class="shownList">{{message}}</h3>
         <div class="snippets">
             <div class="snippet" v-for="snippet in snippets" :key="snippet.id">
                 <div>Title:{{snippet.title}}</div>
                 <div>Content:{{snippet.content}}</div>
                 <div>Score: {{snippet.score}}</div>
                 <div v-show="snippet.is_reported">Reports:{{snippet.is_reported}}</div>
-                <editSnippet @manageSnippet="editSnippet" v-bind:identifier="snippet.id" v-bind:showUnreport="showUnreport"></editSnippet>
+                <editSnippet class="editSnippet" @manageSnippet="editSnippet" v-bind:identifier="snippet.id" v-bind:showUnreport="showUnreport" v-bind:isDisabled="isDisabled"></editSnippet>
             </div>
         </div>
     </div>
@@ -22,7 +21,6 @@
 import addSnippet from './addSnippet.vue';
 import editSnippet from './editSnippet.vue';
 
-
     export default {
         name: 'list',
         components: {
@@ -30,50 +28,67 @@ import editSnippet from './editSnippet.vue';
             editSnippet,
         },
         data: () => ({
-            loading: Boolean,
-            loadingMsg: String,
-            showUnreport:false,
-            shownList: 'Latest snippets are shown below',
+            message: 'Latest snippets are shown below',
+            currentList: String,
+            showUnreport: false,
+            isDisabled: false,
             snippets:[]
         }),
         methods:{
-            waitingForApi(param){
-                let elems = document.getElementsByTagName('button');
-                if(param == true){
-                    this.loading=true;
-                    this.loadingMsg = 'The API i loading please wait'
-                    for(let i = 0; i < elems.length; i++){
-                        elems[i].disabled = true;
-                    }
+            waitingForApi(waiting){
+                if(waiting == true){
+                    this.message = 'The API is loading please wait'
+                    this.isDisabled = true;
                 } else{
-                    for(let i = 0; i < elems.length; i++){
-                        elems[i].disabled = false;
-                    }
-                    this.loading=false;
+                    this.isDisabled = false;
                 }
             },
-            fetchSnippets(param){
+            // list snippets properly
+            listSnippets(param){
                 this.waitingForApi(true);
-                this.showUnreport = false;
-                this.loadingMsg = 'The API i loading please wait'
+                this.fetchSnippets(param);
+            },
+            //Get Snippets
+            fetchSnippets(param){
+                this.currentList = param;
                 fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?'+ param, {
                     method: 'GET',
                 })
                 .then(response => response.json())
                 .then((data) => {
+                    if(param == 'reported'){
+                        this.showUnreport = true;
+                    }
+                    else{
+                        this.showUnreport = false;
+                    }
                     this.waitingForApi(false);
-                    this.shownList = param + ' snippets are listed below';
+                    this.message = param + ' snippets are listed below';
                     this.snippets = data;
                 })
-                .catch((error) => {
+                .catch(() => {
                     this.waitingForApi(false);
-                    this.loadingMsg = 'Fetching "'+ param +'" from API failed, please try again.';
-                    console.log(error);
+                    this.message = 'Fetching "'+ param +'" from API failed, please try again.';
                 })
             },
-            addSnippet(){
-                this.fetchSnippets('latest');
+            // Add a new snippet
+            addSnippet(newSnippet){
+                this.waitingForApi(true)
+                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
+                    method: 'POST',
+                    body: new URLSearchParams('add&title=' + newSnippet.formTitle + '&content=' + newSnippet.formContent + '&tags=' + newSnippet.formTag),
+                })                
+                .then((data) => {
+                    console.log(data)
+;                    this.fetchSnippets(this.currentList)
+                })
+                .catch(() => {
+                    this.waitingForApi(false),
+                    this.errorMsg = 'Failed to add snippet, please try again';
+                    this.error = true;
+                })
             },
+            //delete & upvote/downvote && report/unreport
             editSnippet(editSnippet){
                 if(editSnippet.func == 'delete'){
                     this.waitingForApi(true);
@@ -81,106 +96,58 @@ import editSnippet from './editSnippet.vue';
                         method: 'POST',
                         body: new URLSearchParams('delete&id=' + editSnippet.id),
                     })
-                    .then((response) => {
-                        this.waitingForApi(false);
+                    .then(() => {
                         this.snippets = this.snippets.filter(
                             snippet => snippet.id != editSnippet.id,
                         );
-                        console.log(response);
-                    })
-                    .catch((error) => {
                         this.waitingForApi(false);
-                        this.loadingMsg = 'Removing snippet failed, please try again.';
-                        console.log(error);
+
+                    })
+                    .catch(() => {
+                        this.waitingForApi(false);
+                        this.message = 'Removing snippet failed, please try again.';
                     })
                 }
-                //report
-                if(editSnippet.func == 'report'){
-                    this.waitingForApi(true);
+                else{
+                   this.waitingForApi(true);
                     fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
                         method: 'POST',
-                        body: new URLSearchParams('report&id=' + editSnippet.id),
+                        body: new URLSearchParams(editSnippet.func + '&id=' + editSnippet.id),
                     })
                     .then(() => {
+                        this.fetchSnippets(this.currentList);
+                    })
+                    .catch(() => {
+                        this.message = editSnippet.func + ' snippet failed, please try again.';
                         this.waitingForApi(false);
-                    })
-                    .catch((error) => {
-                        this.waitingForApi(false);
-                        this.loadingMsg = 'Reporting snippet failed, please try again.';
-                        console.log(error);
-                    })
-                }
-                //unreport
-                if(editSnippet.func == 'unreport'){
-                    this.waitingForApi(true);
-                    fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                        method: 'POST',
-                        body: new URLSearchParams('unreport&id=' + editSnippet.id),
-                    })
-                    .then((response) => {
-                        this.waitingForApi(false);
-                        console.log(response);
-                    })
-                    .catch((error) => {
-                        this.waitingForApi(false);
-                        this.loadingMsg = 'Unreporting snippet failed, please try again.';
-                        console.log(error);
-                    })
-                }
-                //upvote
-                if(editSnippet.func == 'upvote'){
-                    this.waitingForApi(true);
-                    fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                        method: 'POST',
-                        body: new URLSearchParams('upvote&id=' + editSnippet.id),
-                    })
-                    .then((response) => {
-                        this.waitingForApi(false);
-                        console.log(response);
-                    })
-                    .catch((error) => {
-                        this.waitingForApi(false);
-                        this.loadingMsg = 'Upvoting snippet failed, please try again.';
-                        console.log(error);
-                    })
-                }
-                //downvote
-                if(editSnippet.func == 'downvote'){
-                    this.waitingForApi(true);
-                    fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                        method: 'POST',
-                        body: new URLSearchParams('downvote&id=' + editSnippet.id),
-                    })
-                    .then((response) => {
-                        this.waitingForApi(false);
-                        console.log(response);
-                    })
-                    .catch((error) => {
-                        this.waitingForApi(false);
-                        this.loadingMsg = 'Downvoting snippet failed, please try again.';
-                        console.log(error);
-                    })
+                    })    
                 }
             },
         },
         mounted(){
-            this.fetchSnippets('latest');
+            this.listSnippets('latest');
         }
     }
 </script>
 
-<style scopes>
-    #list {
-
-    }
+<style>
     .snippets{
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        margin-top: 1em;
+        grid-template-columns: 1fr 1fr 1fr;
         grid-gap: 1em;
+    }
+    .shownList{
+        margin:1em;
     }
     .snippet{
         border: 1px solid #cccc;
         padding:0.5em;
-        
+        word-wrap: break-word;
+        max-width:30em;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
+
 </style>
