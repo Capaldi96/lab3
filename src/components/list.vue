@@ -1,9 +1,11 @@
 <template>
     <div id="list">
         <addSnippet v-bind:isDisabled="isDisabled" @newSnippet="addSnippet"></addSnippet>
-        <button :disabled="isDisabled" @click="listSnippets('latest')">Get latest snippets</button>
-        <button :disabled="isDisabled" @click="listSnippets('best')">Get best snippets</button>
-        <button :disabled="isDisabled" @click="listSnippets('reported')">Get reported snippets</button>
+        <div class="buttonList">
+            <button :disabled="isDisabled" @click="listSnippets('latest')">Get latest snippets</button>
+            <button :disabled="isDisabled" @click="listSnippets('best')">Get best snippets</button>
+            <button :disabled="isDisabled" @click="listSnippets('reported')">Get reported snippets</button>
+        </div>
         <h3 class="shownList">{{message}}</h3>
         <div class="snippets">
             <div class="snippet" v-for="snippet in snippets" :key="snippet.id">
@@ -20,7 +22,7 @@
 <script>
 import addSnippet from './addSnippet.vue';
 import editSnippet from './editSnippet.vue';
-
+const baseUrl = 'https://www.forverkliga.se/JavaScript/api/api-snippets.php?';
     export default {
         name: 'list',
         components: {
@@ -49,13 +51,13 @@ import editSnippet from './editSnippet.vue';
                 this.fetchSnippets(param);
             },
             //Get Snippets
-            fetchSnippets(param){
+            async fetchSnippets(param){
                 this.currentList = param;
-                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php?'+ param, {
-                    method: 'GET',
-                })
-                .then(response => response.json())
-                .then((data) => {
+                try{
+                    let response = await fetch(baseUrl + param, {
+                        method: 'GET',
+                    })
+                    let data = await response.json();
                     if(param == 'reported'){
                         this.showUnreport = true;
                     }
@@ -65,62 +67,64 @@ import editSnippet from './editSnippet.vue';
                     this.waitingForApi(false);
                     this.message = param + ' snippets are listed below';
                     this.snippets = data;
-                })
-                .catch(() => {
+                }
+                catch {
                     this.waitingForApi(false);
                     this.message = 'Fetching "'+ param +'" from API failed, please try again.';
-                })
+                }
             },
             // Add a new snippet
-            addSnippet(newSnippet){
+            // Axios för att visa att jag kan använda det, vanligtvis hade jag hållt mig till ett sätt att göra ajax anrop
+            async addSnippet(newSnippet){
                 this.waitingForApi(true)
-                fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                    method: 'POST',
-                    body: new URLSearchParams('add&title=' + newSnippet.formTitle + '&content=' + newSnippet.formContent + '&tags=' + newSnippet.formTag),
-                })                
-                .then((data) => {
-                    console.log(data)
-;                    this.fetchSnippets(this.currentList)
-                })
-                .catch(() => {
-                    this.waitingForApi(false),
-                    this.errorMsg = 'Failed to add snippet, please try again';
-                    this.error = true;
-                })
+                try{
+                    let response = await this.$http.post(baseUrl,{
+                        add: "",
+                        title: newSnippet.formTitle,
+                        content: newSnippet.formContent,
+                        tags: newSnippet.formTag, 
+                    })
+                    this.message = response.data.message + ', reloading list!';
+                    this.fetchSnippets(this.currentList)
+                }
+                catch(error){
+                    this.message = error.data.message
+                }
             },
             //delete & upvote/downvote && report/unreport
-            editSnippet(editSnippet){
+            async editSnippet(editSnippet){
                 if(editSnippet.func == 'delete'){
                     this.waitingForApi(true);
-                    fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                        method: 'POST',
-                        body: new URLSearchParams('delete&id=' + editSnippet.id),
-                    })
-                    .then(() => {
+                    try{
+                        await fetch(baseUrl, {
+                            method: 'POST',
+                            body: new URLSearchParams('delete&id=' + editSnippet.id),
+                        })
                         this.snippets = this.snippets.filter(
                             snippet => snippet.id != editSnippet.id,
                         );
                         this.waitingForApi(false);
-
-                    })
-                    .catch(() => {
+                        this.message = this.currentList + ' snippets are listed below';
+                    }
+                    catch{
                         this.waitingForApi(false);
                         this.message = 'Removing snippet failed, please try again.';
-                    })
+                    }
                 }
                 else{
                    this.waitingForApi(true);
-                    fetch('https://www.forverkliga.se/JavaScript/api/api-snippets.php', {
-                        method: 'POST',
-                        body: new URLSearchParams(editSnippet.func + '&id=' + editSnippet.id),
-                    })
-                    .then(() => {
-                        this.fetchSnippets(this.currentList);
-                    })
-                    .catch(() => {
+                    try{
+                        let response = await fetch(baseUrl, {
+                            method: 'POST',
+                            body: new URLSearchParams(editSnippet.func + '&id=' + editSnippet.id),
+                        })
+                        console.log(response)
+                        this.listSnippets(this.currentList);
+                    }
+                    catch{
                         this.message = editSnippet.func + ' snippet failed, please try again.';
                         this.waitingForApi(false);
-                    })    
+                    } 
                 }
             },
         },
@@ -130,7 +134,10 @@ import editSnippet from './editSnippet.vue';
     }
 </script>
 
-<style>
+<style scoped>
+    #list{
+        margin-bottom:3em;
+    }
     .snippets{
         display: grid;
         margin-top: 1em;
@@ -149,5 +156,14 @@ import editSnippet from './editSnippet.vue';
         flex-direction: column;
         justify-content: space-between;
     }
-
+    .buttonList{
+        display:flex;
+        width:40em;
+        margin: 0 auto;
+        justify-content: space-between;
+        
+    }
+    .buttonList > button{
+        width:15em
+    }
 </style>

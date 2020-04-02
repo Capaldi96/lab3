@@ -1,5 +1,6 @@
 <template>
     <div id="addSnippet">
+        
         <h1>Add a snippet!</h1>
         <label for="title">Title:</label>
         <input @blur="titleIsTouched = true" placeholder="Enter title here..." type="text" id="title" v-model="model.formTitle" :class="titleClass"/>
@@ -14,7 +15,7 @@
         <div class="error" v-show=" contentIsTouched && !contentIsValid">{{ contentError }}</div>
 
         <button :disabled="isDisabled" type="submit" @click="entireFormIsValid">Add Snippet</button>
-        <div v-show="error">{{errorMsg}}</div>
+        <h3 class="errorMessageBox" v-show="error">{{errorMsg}}</h3>
     </div>
 </template>
 
@@ -73,8 +74,14 @@
         methods:{
             entireFormIsValid(){
                 if(this.titleIsValid && this.contentIsValid && this.tagIsValid){
-                    if(this.errorMsg != null) this.errorMsg = null
-                    this.$emit('newSnippet', this.model)
+                    if(this.errorMsg != null) this.errorMsg = null;
+                    this.$emit('newSnippet', this.model);
+                    this.model.formTitle = '';
+                    this.model.formContent = '';
+                    this.model.formTag = '';
+                    this.titleIsTouched = false;
+                    this.tagIsTouched = false;
+                    this.contentIsTouched = false;
                 }
                 else{
                     this.errorMsg = 'Enter the form properly';
@@ -94,7 +101,7 @@
         flex-direction: column;
         justify-content: space-between;
         width:20em;
-        min-height:15em;
+        height:30em;
         margin:0 auto;
         margin-bottom:3em;
     }
@@ -104,8 +111,10 @@
     }
     .error{
         color:rgba(201, 19, 19, 0.788);
-        border:rgba(201, 19, 19, 0.788) 1px solid;
         padding:0.3em;
+    }
+    .errorMessageBox{
+        color:rgba(201, 19, 19, 0.788);
     }
     .valid{
         border:1px solid rgb(18, 151, 18);
