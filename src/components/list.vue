@@ -114,11 +114,10 @@ const baseUrl = 'https://www.forverkliga.se/JavaScript/api/api-snippets.php?';
                 else{
                    this.waitingForApi(true);
                     try{
-                        let response = await fetch(baseUrl, {
+                        await fetch(baseUrl, {
                             method: 'POST',
                             body: new URLSearchParams(editSnippet.func + '&id=' + editSnippet.id),
                         })
-                        console.log(response)
                         this.listSnippets(this.currentList);
                     }
                     catch{
