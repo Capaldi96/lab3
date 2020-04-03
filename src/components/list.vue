@@ -12,7 +12,7 @@
                 <div>Title:{{snippet.title}}</div>
                 <div>Content:{{snippet.content}}</div>
                 <div>Score: {{snippet.score}}</div>
-                <div v-show="snippet.is_reported">Reports:{{snippet.is_reported}}</div>
+                <div v-show="snippet.is_reported">Reported</div>
                 <editSnippet class="editSnippet" @manageSnippet="editSnippet" v-bind:identifier="snippet.id" v-bind:showUnreport="showUnreport" v-bind:isDisabled="isDisabled"></editSnippet>
             </div>
         </div>
